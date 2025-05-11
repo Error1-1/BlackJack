@@ -1,0 +1,202 @@
+using System;
+using System.Threading;
+using Figgle;
+using System.Collections.Generic;
+using System.Linq;
+
+class Program
+{
+    //------------------RadnomArray------------------//
+    static Random rand = new Random();
+    static List<string> deck = new List<string>();
+    //------------------PrintCardClass------------------//
+    static void PrintCard(string face, string suit)
+    {
+        Console.WriteLine("┌─────────┐");
+        Console.WriteLine($"│{face,-2}       │");
+        Console.WriteLine("│         │");
+        Console.WriteLine($"│    {suit}    │");
+        Console.WriteLine("│         │");
+        Console.WriteLine($"│       {face,2}│");
+        Console.WriteLine("└─────────┘");
+    }
+    //------------------Main------------------//
+    static void Main()
+    {
+        //------------------MainDesign------------------//
+        string logo = FiggleFonts.Standard.Render("BlackJack");
+        string total = FiggleFonts.Standard.Render("Total");
+        string hand = FiggleFonts.Standard.Render("Hand");
+        string drew = FiggleFonts.Standard.Render("Dealer Hand");
+
+        Console.WriteLine(logo);
+
+        Console.Write("Loading");
+        int dotCount = 0;
+        for (int i = 0; i < 10; i++)
+        {
+            Thread.Sleep(400);
+            dotCount = (dotCount + 1) % 4;
+            Console.Write("\rLoading" + new string('.', dotCount) + "  Created By !Error.  ");
+        }
+
+        Console.WriteLine("\nGame Loaded!");
+        Thread.Sleep(1000);
+        Console.Clear();
+        Console.WriteLine(logo);
+        Console.Title = "Blackjack Console Game";
+        //------------------GamePlay------------------//
+        while (true)
+        {
+            Console.Clear();
+            InitDeck();
+            List<string> playerHand = new List<string>();
+            List<string> dealerHand = new List<string>();
+
+            playerHand.Add(DrawCard());
+            playerHand.Add(DrawCard());
+
+            dealerHand.Add(DrawCard());
+            dealerHand.Add(DrawCard());
+
+            Console.WriteLine(drew);
+            ShowHand(new List<string> { dealerHand[0] });
+
+            Console.WriteLine(hand);
+            ShowHand(playerHand);
+
+            Console.WriteLine(total + HandValue(playerHand));
+
+            while (HandValue(playerHand) < 21)
+            {
+                Console.Write("Hit or Stand (H/S)? ");
+                string input = Console.ReadLine().ToLower();
+
+                if (input == "h")
+                {
+                    Console.Clear();
+                    string newCard = DrawCard();
+                    playerHand.Add(newCard);
+                    Console.WriteLine("You drew:");
+                    ShowCard(newCard);
+                    Console.WriteLine("Your hand:");
+                    ShowHand(playerHand);
+                    Console.WriteLine(total + HandValue(playerHand));
+                }
+                else if (input == "s")
+                {
+                    break;
+                }
+            }
+
+            int playerTotal = HandValue(playerHand);
+            if (playerTotal > 21)
+            {
+                Console.WriteLine("You busted! Dealer wins.");
+            }
+            else
+            {
+                Console.WriteLine("\nDealer's turn...");
+                ShowHand(dealerHand);
+
+                while (HandValue(dealerHand) < 17)
+                {
+                    Thread.Sleep(1000);
+                    string newCard = DrawCard();
+                    dealerHand.Add(newCard);
+                    Console.WriteLine("Dealer draws:");
+                    ShowCard(newCard);
+                }
+
+                int dealerTotal = HandValue(dealerHand);
+                Console.WriteLine("Dealer total: " + dealerTotal);
+
+                if (dealerTotal > 21 || playerTotal > dealerTotal)
+                    Console.WriteLine("You win!");
+                else if (playerTotal < dealerTotal)
+                    Console.WriteLine("Dealer wins.");
+                else
+                    Console.WriteLine("Push (Tie).");
+            }
+
+            Console.Write("\nPlay again? (Y/N): ");
+            if (Console.ReadLine().ToLower() != "y")
+                break;
+        }
+    }
+    //------------------DeckValue / Random - Array------------------
+    static void InitDeck()
+    {
+        deck.Clear();
+        string[] suits = { "♠", "♥", "♦", "♣" };
+        string[] faces = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A" };
+        foreach (var suit in suits)
+            foreach (var face in faces)
+                deck.Add(face + suit);
+        Shuffle(deck);
+    }
+
+    static string DrawCard()
+    {
+        if (deck.Count == 0)
+            InitDeck();
+
+        int index = rand.Next(deck.Count);
+        string card = deck[index];
+        deck.RemoveAt(index);
+        return card;
+    }
+
+    static void Shuffle(List<string> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = rand.Next(i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
+
+    static int HandValue(List<string> hand)
+    {
+        int value = 0;
+        int aceCount = 0;
+
+        foreach (string card in hand)
+        {
+            string face = new string(card.TakeWhile(c => char.IsLetterOrDigit(c)).ToArray());
+
+            if (int.TryParse(face, out int num))
+                value += num;
+            else if (face == "A")
+            {
+                value += 11;
+                aceCount++;
+            }
+            else
+                value += 10;
+        }
+
+        while (value > 21 && aceCount > 0)
+        {
+            value -= 10;
+            aceCount--;
+        }
+
+        return value;
+    }
+    //------------------CardPrinter------------------//
+    static void ShowCard(string card)
+    {
+        string face = new string(card.TakeWhile(char.IsLetterOrDigit).ToArray());
+        string suit = card.Last().ToString();
+        PrintCard(face, suit);
+    }
+
+    static void ShowHand(List<string> hand)
+    {
+        foreach (var card in hand)
+        {
+            ShowCard(card);
+        }
+    }
+}
